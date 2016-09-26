@@ -200,8 +200,8 @@ class ContactMailer extends Mailer
         ];
 
         if ($account->attachPDF()) {
-            $data['pdfString'] = $pdfString;
-            $data['pdfFileName'] = $invoice->getFileName();
+            $data['pdfString'] = file_get_contents($invoice->getPDFPath());
+            $data['pdfFileName'] = $client->name.'_'.$invoice->invoice_number.'.pdf';
         }
 
         $subject = $this->templateService->processVariables($subject, $variables);
