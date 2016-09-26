@@ -1029,4 +1029,33 @@ class Utils
              return trans('texts.'.strtolower($day));
         });
     }
+
+    public static function stringToObjectResolution($baseObject, $rawPath)
+    {
+        $val = '';
+
+        if (!is_object($baseObject)) {
+          return $val;
+        }
+
+        $path = preg_split('/->/', $rawPath);
+        $node = $baseObject;
+        array_shift($path);
+
+        while (($prop = array_shift($path)) !== null) {
+            if (property_exists($node, $prop)) {
+                $val = $node->$prop;
+                $node = $node->$prop;
+            } else if ( method_exists($node, $prop)) {
+                $val = call_user_func(array($node, $prop));
+                if ($val instanceof \Illuminate\Database\Eloquent\Relations\BelongsTo) {
+                    $val = $val->getResults();
+                }
+            } else if (is_object($node) && isset($node->$prop)) {
+                $val = $node->{$prop};
+            }
+        }
+
+        return $val;
+    }
 }
