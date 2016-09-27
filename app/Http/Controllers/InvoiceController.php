@@ -10,6 +10,7 @@ use Redirect;
 use DB;
 use URL;
 use DropdownButton;
+use mPDF;
 use App\Models\Invoice;
 use App\Models\Client;
 use App\Models\Account;
@@ -225,6 +226,8 @@ class InvoiceController extends BaseController
                 break;
             }
         }
+        $invoiceData = (array)$data;
+        $this->generatePDF($invoiceData, $data);
 
         return View::make('invoices.edit', $data);
     }
@@ -618,4 +621,49 @@ class InvoiceController extends BaseController
         return $count ? RESULT_FAILURE : RESULT_SUCCESS;
     }
 
+    private function mutableTempalteHelper(&$invoiceData, $rawInvoice) {
+        // remove unusable product items
+        foreach($rawInvoice['invoice']['invoice_items'] AS $itemKey => &$item) {
+            if (!isset($item->public_id)) {
+                unset($rawInvoice['invoice']['invoice_items'][$itemKey]);
+            }
+        }
+
+        $invoiceData['client']->currencySymbol = $rawInvoice['account']->currency->symbol;
+        $invoiceData['client']->currencyPrecision = $rawInvoice['account']->currency->precision;
+        $invoiceData['client']->currencyDecimal = $rawInvoice['account']->currency->decimal_separator;
+        $invoiceData['client']->currencyThousand = $rawInvoice['account']->currency->thousand_separator;
+
+        Utils::currencyFormatterVerbose(0, $invoiceData['client']->currencyPrecision, $invoiceData['client']->currencySymbol, 'right', $invoiceData['client']->currencyDecimal, $invoiceData['client']->currencyThousand);
+    }
+
+    private function generatePDF(&$invoiceData, $rawInvoice) {
+        $this->mutableTempalteHelper($invoiceData, $rawInvoice);
+
+        ini_set('xdebug.var_display_max_data', 400048);
+//            var_dump(
+//            	$invoiceData
+//            	#$rawInvoice['invoice']->getPDFPath()
+//            );
+//            exit;
+
+        $pdfTemplateName = strtolower(InvoiceDesign::where('id', '=', $invoiceData['account']->invoice_design_id)->get()->first()->name);
+        $pdfTemplateName = 'dd';
+
+        $html = (View::make('invoice_template.'.$pdfTemplateName, array('invoiceData' => $invoiceData, 'rawInvoice'=>$rawInvoice))->render());
+        #echo $html;exit;
+        #$mpdf=new mPDF('utf-8','A4','','',20,20,20,20,0,20);
+        $mpdf = new mPDF('utf-8','A4');
+        $mpdf->SetProtection(array('print'));
+        #$mpdf->SetTitle("Acme Trading Co. - Invoice");
+        #$mpdf->SetAuthor("Acme Trading Co.");
+        #$mpdf->SetWatermarkText("Paid");
+        $mpdf->showWatermarkText = true;
+        $mpdf->watermark_font = 'DejaVuSansCondensed';
+        $mpdf->watermarkTextAlpha = 0.1;
+        $mpdf->SetDisplayMode('fullpage');
+        $mpdf->WriteHTML($html);
+        $mpdf->Output($rawInvoice['invoice']->getPDFPath(), 'F');
+        #exit;
+    }
 }

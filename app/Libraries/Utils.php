@@ -1057,5 +1057,24 @@ class Utils
         }
 
         return $val;
+
+    private static $inlineCacheLastDecimalPrecision = 2;
+    private static $inlineCacheLastDecimalSeparator = '.';
+    private static $inlineCacheLastThousandSeparator = ',';
+    private static $inlineCacheLastCurrencySymbol = '$';
+    private static $inlineCacheLastCurrencyPosition = 'left';
+
+    public static function currencyFormatterVerbose($number, $decimalPrecision = 2, $currencySymbol = '$', $currencyPosition = 'left', $decimalSeparator = '.', $thousandSeparator = ',') {
+        self::$inlineCacheLastDecimalPrecision = $decimalPrecision;
+        self::$inlineCacheLastDecimalSeparator = $decimalSeparator;
+        self::$inlineCacheLastThousandSeparator = $thousandSeparator;
+        self::$inlineCacheLastCurrencySymbol = $currencySymbol;
+        self::$inlineCacheLastCurrencyPosition = $currencyPosition;
+
+        return ($currencyPosition === 'left' ? $currencySymbol : '').number_format($number, $decimalPrecision, $decimalSeparator, $thousandSeparator).($currencyPosition === 'right' ? $currencySymbol : '');
+    }
+
+    public static function curForm($number) {
+        return (self::$inlineCacheLastCurrencyPosition === 'left' ? htmlentities(self::$inlineCacheLastCurrencySymbol) : '').number_format($number, self::$inlineCacheLastDecimalPrecision, self::$inlineCacheLastDecimalSeparator, self::$inlineCacheLastThousandSeparator).(self::$inlineCacheLastCurrencyPosition === 'right' ? htmlentities(self::$inlineCacheLastCurrencySymbol) : '');
     }
 }
