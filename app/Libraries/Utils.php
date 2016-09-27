@@ -1057,6 +1057,7 @@ class Utils
         }
 
         return $val;
+    }
 
     private static $inlineCacheLastDecimalPrecision = 2;
     private static $inlineCacheLastDecimalSeparator = '.';
