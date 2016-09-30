@@ -640,30 +640,35 @@ class InvoiceController extends BaseController
     private function generatePDF(&$invoiceData, $rawInvoice) {
         $this->mutableTempalteHelper($invoiceData, $rawInvoice);
 
-        ini_set('xdebug.var_display_max_data', 400048);
-//            var_dump(
-//            	$invoiceData
-//            	#$rawInvoice['invoice']->getPDFPath()
-//            );
-//            exit;
+        $clientLanguage = $rawInvoice['client']->language()->getresults();
+        if (isset($clientLanguage->locale)) {
+            $tmpLocale = \App::getLocale();
+            \App::setLocale($clientLanguage->locale);
+        }
 
         $pdfTemplateName = strtolower(InvoiceDesign::where('id', '=', $invoiceData['account']->invoice_design_id)->get()->first()->name);
-        $pdfTemplateName = 'dd';
 
         $html = (View::make('invoice_template.'.$pdfTemplateName, array('invoiceData' => $invoiceData, 'rawInvoice'=>$rawInvoice))->render());
-        #echo $html;exit;
         #$mpdf=new mPDF('utf-8','A4','','',20,20,20,20,0,20);
         $mpdf = new mPDF('utf-8','A4');
         $mpdf->SetProtection(array('print'));
-        #$mpdf->SetTitle("Acme Trading Co. - Invoice");
-        #$mpdf->SetAuthor("Acme Trading Co.");
+        $mpdf->SetTitle($rawInvoice['account']->name.' '.trans('texts.invoice'));
+        $mpdf->SetAuthor($rawInvoice['account']->name);
+
+        #$mpdf->setAutoTopMargin = true;
+        $mpdf->setAutoBottomMargin = true;
+
         #$mpdf->SetWatermarkText("Paid");
-        $mpdf->showWatermarkText = true;
-        $mpdf->watermark_font = 'DejaVuSansCondensed';
-        $mpdf->watermarkTextAlpha = 0.1;
+        #$mpdf->showWatermarkText = false;
+        #$mpdf->watermark_font = 'DejaVuSansCondensed';
+        #$mpdf->watermarkTextAlpha = 0.1;
+
         $mpdf->SetDisplayMode('fullpage');
         $mpdf->WriteHTML($html);
         $mpdf->Output($rawInvoice['invoice']->getPDFPath(), 'F');
-        #exit;
+
+        #$mpdf->Output();exit;
+
+        \App::setLocale($tmpLocale);
     }
 }
